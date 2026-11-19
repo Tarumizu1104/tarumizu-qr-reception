@@ -56,6 +56,7 @@
       {
         fps: 10,
 formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        useBarCodeDetectorIfSupported: false,
         qrbox: function(viewfinderWidth, viewfinderHeight) {
   const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.8);
   return { width: size, height: size };
