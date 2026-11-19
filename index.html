@@ -3,24 +3,30 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1">
-  <title>垂水進学塾 QR受付</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>垂水進学塾 QR受付テスト</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <style>
     body {
       font-family: sans-serif;
       text-align: center;
-      padding: 15px;
       background: #f4f7fb;
+      padding: 15px;
     }
     h2 { color: #174c82; }
-    #reader {
+    video {
+      width: 100%;
       max-width: 420px;
-      margin: 20px auto;
+      border-radius: 12px;
+      background: #222;
+    }
+    button {
+      font-size: 20px;
+      padding: 14px 24px;
+      margin: 15px;
     }
     #result {
-      font-size: 20px;
+      font-size: 22px;
       font-weight: bold;
       margin-top: 20px;
     }
@@ -28,45 +34,81 @@
 </head>
 <body>
   <h2>垂水進学塾</h2>
-  <h3>QR入退室受付</h3>
+  <h3>QR入退室受付・読み取りテスト</h3>
   <p>QRカードをカメラにかざしてください</p>
 
-  <div id="reader"></div>
-  <p id="result">読み取り待機中</p>
+  <button id="start">カメラ起動</button>
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="canvas" hidden></canvas>
+  <p id="result" aria-live="polite">読み取り待機中</p>
 
   <script>
-    let lastScan = "";
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d", {
+      willReadFrequently: true
+    });
+    const result = document.getElementById("result");
+    let scanning = false;
+    let lastText = "";
     let lastTime = 0;
 
-    function onScanSuccess(decodedText) {
-      const now = Date.now();
+    document.getElementById("start").onclick = async () => {
+      try {
+        if (typeof jsQR !== "function") {
+          result.textContent = "QR解析ライブラリを読み込めません";
+          return;
+        }
 
-      if (decodedText === lastScan &&
-          now - lastTime < 3000) return;
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { facingMode: { ideal: "environment" } }
+        });
 
-      lastScan = decodedText;
-      lastTime = now;
+        video.srcObject = stream;
+        await video.play();
+        scanning = true;
+        result.textContent = "読み取り待機中";
+        requestAnimationFrame(scan);
+      } catch (error) {
+        result.textContent = "カメラエラー: " + error.message;
+      }
+    };
 
-      document.getElementById("result").textContent =
-        "QRコードを読み取りました";
+    function scan() {
+      if (!scanning) return;
+
+      if (video.readyState >= 2 &&
+          video.videoWidth > 0 &&
+          video.videoHeight > 0) {
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const image = ctx.getImageData(
+          0, 0, canvas.width, canvas.height
+        );
+
+        const code = jsQR(
+          image.data,
+          image.width,
+          image.height,
+          { inversionAttempts: "attemptBoth" }
+        );
+
+        if (code) {
+          const now = Date.now();
+          if (code.data !== lastText || now - lastTime > 3000) {
+            lastText = code.data;
+            lastTime = now;
+            result.textContent = "QRコードを読み取りました";
+          }
+        }
+      }
+
+      requestAnimationFrame(scan);
     }
-
-    const scanner = new Html5QrcodeScanner(
-      "reader",
-      {
-        fps: 10,
-formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-        useBarCodeDetectorIfSupported: false,
-        qrbox: function(viewfinderWidth, viewfinderHeight) {
-  const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.8);
-  return { width: size, height: size };
-}
-      },
-      false
-    );
-
-    scanner.render(onScanSuccess);
   </script>
 </body>
 </html>
-
