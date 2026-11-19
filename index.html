@@ -1,1 +1,67 @@
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+  <title>垂水進学塾 QR受付</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 15px;
+      background: #f4f7fb;
+    }
+    h2 { color: #174c82; }
+    #reader {
+      max-width: 420px;
+      margin: 20px auto;
+    }
+    #result {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>垂水進学塾</h2>
+  <h3>QR入退室受付</h3>
+  <p>QRカードをカメラにかざしてください</p>
+
+  <div id="reader"></div>
+  <p id="result">読み取り待機中</p>
+
+  <script>
+    let lastScan = "";
+    let lastTime = 0;
+
+    function onScanSuccess(decodedText) {
+      const now = Date.now();
+
+      if (decodedText === lastScan &&
+          now - lastTime < 3000) return;
+
+      lastScan = decodedText;
+      lastTime = now;
+
+      document.getElementById("result").textContent =
+        "QRコードを読み取りました";
+    }
+
+    const scanner = new Html5QrcodeScanner(
+      "reader",
+      {
+        fps: 10,
+        qrbox: { width: 220, height: 220 }
+      },
+      false
+    );
+
+    scanner.render(onScanSuccess);
+  </script>
+</body>
+</html>
+
